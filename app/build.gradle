@@ -1,0 +1,75 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion rootProject.ext.versionCompiler
+    defaultConfig {
+        applicationId "com.jiangdg.usbcamera"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.versionTarget
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionNameString
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    // solving com.android.tools.r8.CompilationFailedException: Compilation failed to complete
+    compileOptions {
+        sourceCompatibility rootProject.ext.javaSourceCompatibility
+        targetCompatibility rootProject.ext.javaTargetCompatibility
+    }
+
+    sourceSets{
+        main{
+//            jni.srcDirs=['src/main/libs']  // jniLib.srcDirs定義了Gradle在哪裡尋找生成的so庫檔案
+            jni.srcDirs = []
+            jniLibs.srcDir 'src/main/libs'
+
+        }
+    }
+    externalNativeBuild {
+        ndkBuild {
+            path file('src/main/jni/Android.mk')
+        }
+    }
+}
+
+//tasks.withType(JavaCompile) {
+//    compileTask -> compileTask.dependsOn ndkBuild
+//}
+
+//task ndkBuild(type: Exec, description: 'Compile JNI source via NDK') {
+//    println('executing ndkBuild')
+////	def ndkBuildingDir = project.plugins.findPlugin('com.android.library').sdkHandler.getNdkFolder().absolutePath
+//    //def androidSDKDir = plugins.getPlugin('com.android.library').sdkHandler.getSdkFolder()
+//    def ndkBuildingDir =  project.android.ndkDirectory
+//    def ndkBuildPath = ndkBuildingDir
+//    println ("------ndkBuildingDir-------:" + ndkBuildingDir)
+//    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+//        ndkBuildPath = "" + ndkBuildingDir + '\\ndk-build.cmd'
+//        println ("------ndkBuildPath-------:" + ndkBuildPath)
+//
+//    } else {
+//        ndkBuildPath = ndkBuildingDir + '/ndk-build'
+//    }
+//    commandLine ndkBuildPath, '-j8', '-C', file('src/main').absolutePath
+//}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+
+    implementation "androidx.appcompat:appcompat:${androidXVersion}"
+
+    implementation 'com.jakewharton:butterknife:10.2.0'
+    annotationProcessor 'com.jakewharton:butterknife-compiler:10.2.0'
+
+//    implementation project(':libusbcamera')
+    api "com.serenegiant:common:${commonLibVersion}"
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+
+}
