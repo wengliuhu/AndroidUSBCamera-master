@@ -17,7 +17,9 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -34,6 +36,7 @@ import com.jiangdg.usbcamera.utils.FileUtils;
 import com.serenegiant.usb.CameraDialog;
 import com.serenegiant.usb.Size;
 import com.serenegiant.usb.USBMonitor;
+import com.serenegiant.usb.UVCCamera;
 import com.serenegiant.usb.common.AbstractUVCCameraHandler;
 import com.serenegiant.usb.encoder.RecordParams;
 import com.serenegiant.usb.widget.CameraViewInterface;
@@ -74,6 +77,12 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
     public TextView mTvContrast;
     @BindView(R.id.switch_rec_voice)
     public Switch mSwitchVoice;
+    @BindView(R.id.ll_setting)
+    public LinearLayout mLlSetting;
+    @BindView(R.id.rb_foramt)
+    public RadioGroup mRbFormat;
+    @BindView(R.id.tv_resolution)
+    public TextView mTvResolution;
 
     private UVCCameraHelper mCameraHelper;
     private CameraViewInterface mUVCCameraView;
@@ -256,6 +265,34 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
             }
         });
         mSeekScale.setProgress(5);
+
+        // 显示设置控件
+        mTextureView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mLlSetting.setVisibility(mLlSetting.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
+            }
+        });
+
+        // 分辨率选择
+        mTvResolution.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mCameraHelper == null || !mCameraHelper.isCameraOpened()) {
+                    showShortMsg("sorry,camera open failed");
+                }
+                showResolutionListDialog();
+            }
+        });
+        // 视频流格式选择
+        mRbFormat.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (mCameraHelper == null || !mCameraHelper.isCameraOpened()) return;
+                mCameraHelper.updateFormat(R.id.rb_YUY == checkedId ? UVCCamera.FRAME_FORMAT_YUYV : UVCCamera.FRAME_FORMAT_MJPEG);
+
+            }
+        });
     }
 
     @Override
@@ -412,7 +449,11 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                 if (size != null){
                     int widht = Integer.valueOf(size.width);
                     int height = Integer.valueOf(size.height);
-                    mCameraHelper.updateResolution(widht, height);
+                    AbstractUVCCameraHandler.UVCParam param = new AbstractUVCCameraHandler.UVCParam();
+                    param.minFrame = size.intervals[0];
+                    param.maxFrame = size.intervals[1];
+                    param.frameInterval = size.intervals[2];
+                    mCameraHelper.updateResolution(widht, height, param);
                 }
 //                String[] tmp = resolution.split("x");
 //                if (tmp != null && tmp.length >= 2) {

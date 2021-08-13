@@ -391,6 +391,25 @@ public abstract class AbstractUVCCameraHandler extends Handler {
         }
     }
 
+    public void setParams(UVCParam params){
+        mWeakThread.get().setmParam(params);
+    }
+
+    public UVCParam getParams(){
+        return mWeakThread.get().getmParam();
+    }
+
+    public static class UVCParam{
+        // 最大帧率
+        public  int maxFrame = 31;
+        // 最小帧率
+        public  int minFrame = 1;
+        // 帧率间隔
+        public  int frameInterval = 333333;
+        // 视频格式
+        public  int format = UVCCamera.FRAME_FORMAT_MJPEG;
+    }
+
     public static final class CameraThread extends Thread {
         private static final String TAG_THREAD = "CameraThread";
         private final Object mSync = new Object();
@@ -400,9 +419,7 @@ public abstract class AbstractUVCCameraHandler extends Handler {
         private final int mEncoderType;
         private final Set<CameraCallback> mCallbacks = new CopyOnWriteArraySet<CameraCallback>();
         // 最大和最小帧率，默认帧间隔
-        public static int maxFrame;
-        public static int minFrame;
-        public static int frameInterval;
+
         private int mWidth, mHeight, mPreviewMode;
         private float mBandwidthFactor;
         private boolean mIsPreviewing;
@@ -422,6 +439,15 @@ public abstract class AbstractUVCCameraHandler extends Handler {
         private String videoPath;
         private boolean isSupportOverlay;
 //		private boolean isAudioThreadStart;
+        private volatile UVCParam mParam;
+
+        public UVCParam getmParam() {
+            return mParam;
+        }
+
+        public void setmParam(UVCParam mParam) {
+            this.mParam = mParam;
+        }
 
         /**
          * 构造方法
@@ -555,7 +581,11 @@ public abstract class AbstractUVCCameraHandler extends Handler {
             } catch (final IllegalArgumentException e) {
                 try {
                     // fallback to YUV mode
-                    mUVCCamera.setPreviewSize(mWidth, mHeight, 1, 31, UVCCamera.DEFAULT_PREVIEW_MODE, mBandwidthFactor);
+                    if (mParam != null){
+                        mUVCCamera.setPreviewSize(mWidth, mHeight, mParam.minFrame, mParam.maxFrame, mParam.format, mBandwidthFactor);
+                    }else {
+                        mUVCCamera.setPreviewSize(mWidth, mHeight, 1, 31, UVCCamera.DEFAULT_PREVIEW_MODE, mBandwidthFactor);
+                    }
                 } catch (final IllegalArgumentException e1) {
                     callOnError(e1);
                     return;

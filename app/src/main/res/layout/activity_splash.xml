@@ -7,7 +7,7 @@
         android:layout_width="410dp"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center_horizontal|center_vertical"
+        android:gravity="center_horizontal|bottom"
         android:text="Welcome to use!"
         android:textSize="28sp"
         android:textStyle="bold" />
@@ -15,24 +15,30 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal|center_vertical"
+        android:layout_weight="1"
         android:textSize="14sp"
         android:textStyle="italic"
-        android:text="Author: jiangdongguo"/>
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal|center_vertical"
-        android:layout_marginTop="5dp"
-        android:textStyle="italic"
-        android:textSize="14sp"
-        android:text="Email:765067602@qq.com"/>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:text="last modify 2020.01"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:gravity="bottom|center_horizontal"
-        android:paddingBottom="20dp"
-        android:layout_weight="1"/>
+        android:text="戴雅贝森"/>
+<!--    <TextView-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_gravity="center_horizontal|center_vertical"-->
+<!--        android:layout_marginTop="5dp"-->
+<!--        android:textStyle="italic"-->
+<!--        android:textSize="14sp"-->
+<!--        android:text="Email:765067602@qq.com"/>-->
+<!--    <TextView-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="0dp"-->
+<!--        android:text="last modify 2020.01"-->
+<!--        android:textSize="16sp"-->
+<!--        android:textStyle="bold"-->
+<!--        android:gravity="bottom|center_horizontal"-->
+<!--        android:paddingBottom="20dp"-->
+<!--        android:layout_weight="1"/>-->
+<!--    <TextView-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text=""-->
+<!--        />-->
 </LinearLayout>

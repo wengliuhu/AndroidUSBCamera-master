@@ -15,7 +15,8 @@
         android:background="@color/colorPrimary"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
         app:navigationIcon="@null"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        android:visibility="gone"/>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -30,6 +31,7 @@
     </FrameLayout>
 
     <LinearLayout
+        android:id="@+id/ll_setting"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -130,12 +132,49 @@
                 android:text="x 1"
                 android:textColor="#fff"/>
         </LinearLayout>
-        
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
 
-        </LinearLayout>
+
+        <RadioGroup
+            android:id="@+id/rb_foramt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="视频格式"
+                android:textColor="#fff"/>
+            <RadioButton
+                android:id="@+id/rb_YUY"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#fff"
+                android:text="YUY"/>
+
+            <RadioButton
+                android:id="@+id/rb_MJPEG"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#fff"
+                android:text="MJPEG"/>
+            <View
+                android:layout_width="60dp"
+                android:layout_height="0dp"/>
+        </RadioGroup>
+        <TextView
+            android:id="@+id/tv_resolution"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="10dp"
+            android:text="分辨率"
+            android:textColor="#fff"
+            android:gravity="center"/>
 
     </LinearLayout>
 

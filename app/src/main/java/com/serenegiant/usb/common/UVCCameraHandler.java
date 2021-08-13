@@ -137,4 +137,6 @@ public class UVCCameraHandler extends AbstractUVCCameraHandler {
 	public void startCameraFoucs() {
 		super.startCameraFoucs();
 	}
+
+
 }

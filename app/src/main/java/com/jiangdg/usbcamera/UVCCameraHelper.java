@@ -164,7 +164,16 @@ public class UVCCameraHelper {
        updateResolution(size.width, size.height);
     }
 
-    public void updateResolution(int width, int height) {
+    public void updateFormat(int format) {
+        AbstractUVCCameraHandler.UVCParam param = null;
+        if (mCameraHandler != null) {
+            param = mCameraHandler.getParams();
+        }else param = new AbstractUVCCameraHandler.UVCParam();
+        param.format = format;
+        updateResolution(this.previewWidth, this.previewHeight, param);
+    }
+
+    public void updateResolution(int width, int height, AbstractUVCCameraHandler.UVCParam param) {
         if (previewWidth == width && previewHeight == height) {
             return;
         }
@@ -188,9 +197,13 @@ public class UVCCameraHelper {
                     e.printStackTrace();
                 }
                 // start previewing
-                startPreview(mCamView);
+                startPreview(mCamView, param);
             }
         }).start();
+    }
+
+    public void updateResolution(int width, int height) {
+       updateResolution(width, height, null);
     }
 
     public void registerUSB() {
@@ -326,8 +339,15 @@ public class UVCCameraHelper {
     }
 
     public void startPreview(CameraViewInterface cameraView) {
+       startPreview(cameraView, null);
+    }
+
+    public void startPreview(CameraViewInterface cameraView, AbstractUVCCameraHandler.UVCParam param) {
         SurfaceTexture st = cameraView.getSurfaceTexture();
         if (mCameraHandler != null) {
+            if (param != null){
+                mCameraHandler.setParams(param);
+            }
             mCameraHandler.startPreview(st);
         }
     }
