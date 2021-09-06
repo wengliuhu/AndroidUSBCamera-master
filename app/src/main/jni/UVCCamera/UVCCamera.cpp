@@ -150,16 +150,20 @@ int UVCCamera::connect(int vid, int pid, int fd, int busnum, int devaddr, const 
 			}
 		}
 		// カメラ機能フラグをクリア
+		// 译：清除相机功能标志
 		clearCameraParams();
 		fd = dup(fd);
 		// 指定したvid,idを持つデバイスを検索, 見つかれば0を返してmDeviceに見つかったデバイスをセットする(既に1回uvc_ref_deviceを呼んである)
+		// 译：搜索指定vid、id的设备，如果找到则返回0并在mDevice中设置找到的设备（已经调用过uvc_ref_device一次）
 //		result = uvc_find_device2(mContext, &mDevice, vid, pid, NULL, fd);
 		result = uvc_get_device_with_fd(mContext, &mDevice, vid, pid, NULL, fd, busnum, devaddr);
 		if (LIKELY(!result)) {
 			// カメラのopen処理
+			// 译：相机打开过程
 			result = uvc_open(mDevice, &mDeviceHandle);
 			if (LIKELY(!result)) {
 				// open出来た時
+				// 译：什么时候可以开
 #if LOCAL_DEBUG
 				uvc_print_diag(mDeviceHandle, stderr);
 #endif

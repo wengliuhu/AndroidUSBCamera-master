@@ -123,6 +123,8 @@ public class UVCCameraHandler extends AbstractUVCCameraHandler {
 		super.startPreview(surface);
 	}
 
+
+
 //	@Override
 //	public void captureStill() {
 //		super.captureStill();

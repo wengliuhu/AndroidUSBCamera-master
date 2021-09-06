@@ -17,6 +17,13 @@
         app:navigationIcon="@null"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
         android:visibility="gone"/>
+    <TextView
+        android:id="@+id/tv_fps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#f00"
+        android:textSize="18sp"
+        android:text="FPS:"/>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -28,6 +35,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"/>
+
+        <com.dybs.usbcamera.view.AutoScanView
+            android:id="@+id/asv"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:auto_linewidth="6dp"
+            app:auto_lineColor="#FF0000"/>
     </FrameLayout>
 
     <LinearLayout
@@ -65,18 +79,8 @@
                 android:layout_width="60dp"
                 android:layout_height="wrap_content"
                 android:text="0"
+                android:layout_gravity="center"
                 android:textColor="#fff"/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/llayout_brightness"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_above="@id/llayout_contrast"
-            android:layout_marginBottom="10dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp"
-            android:orientation="horizontal">
 
             <TextView
                 android:layout_width="0dp"
@@ -97,13 +101,45 @@
                 android:layout_width="60dp"
                 android:layout_height="wrap_content"
                 android:text="0"
+                android:layout_gravity="center"
                 android:textColor="#fff"/>
         </LinearLayout>
+
+<!--        <LinearLayout-->
+<!--            android:id="@+id/llayout_brightness"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_above="@id/llayout_contrast"-->
+<!--            android:layout_marginBottom="10dp"-->
+<!--            android:layout_marginLeft="10dp"-->
+<!--            android:layout_marginRight="10dp"-->
+<!--            android:orientation="horizontal">-->
+
+<!--            <TextView-->
+<!--                android:layout_width="0dp"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_weight="1"-->
+<!--                android:paddingBottom="7dp"-->
+<!--                android:paddingTop="7dp"-->
+<!--                android:text="亮度(brightness)"-->
+<!--                android:textColor="#fff" />-->
+
+<!--            <SeekBar-->
+<!--                android:id="@+id/seekbar_brightness"-->
+<!--                android:layout_width="0dp"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:layout_weight="2" />-->
+<!--            <TextView-->
+<!--                android:id="@+id/tv_brightness"-->
+<!--                android:layout_width="60dp"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="0"-->
+<!--                android:textColor="#fff"/>-->
+<!--        </LinearLayout>-->
         <LinearLayout
             android:id="@+id/llayout_scale"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_above="@id/llayout_brightness"
             android:layout_marginBottom="10dp"
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
@@ -131,50 +167,75 @@
                 android:layout_height="wrap_content"
                 android:text="x 1"
                 android:textColor="#fff"/>
+
+            <RadioGroup
+                android:id="@+id/rb_foramt"
+                android:layout_width="0dp"
+                android:layout_weight="4"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:layout_gravity="center"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="视频格式"
+                    android:textColor="#fff"/>
+                <RadioButton
+                    android:id="@+id/rb_YUY"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="#fff"
+                    android:text="YUY"/>
+
+                <RadioButton
+                    android:id="@+id/rb_MJPEG"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="#fff"
+                    android:text="MJPEG"/>
+                <View
+                    android:layout_width="60dp"
+                    android:layout_height="0dp"/>
+            </RadioGroup>
         </LinearLayout>
 
 
-        <RadioGroup
-            android:id="@+id/rb_foramt"
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp"
             android:orientation="horizontal">
             <TextView
-                android:layout_width="0dp"
+                android:id="@+id/tv_resolution"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="视频格式"
-                android:textColor="#fff"/>
-            <RadioButton
-                android:id="@+id/rb_YUY"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:paddingVertical="10dp"
+                android:paddingHorizontal="60dp"
+                android:text="分辨率"
                 android:textColor="#fff"
-                android:text="YUY"/>
-
-            <RadioButton
-                android:id="@+id/rb_MJPEG"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="#fff"
-                android:text="MJPEG"/>
+                android:gravity="center"/>
             <View
-                android:layout_width="60dp"
-                android:layout_height="0dp"/>
-        </RadioGroup>
-        <TextView
-            android:id="@+id/tv_resolution"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingVertical="10dp"
-            android:text="分辨率"
-            android:textColor="#fff"
-            android:gravity="center"/>
+                android:layout_width="2dp"
+                android:layout_height="match_parent"
+                android:background="@color/WHEAT"/>
+
+            <CheckBox
+                android:id="@+id/cb_gray"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="灰度显示"
+                android:textColor="#fff"
+                android:layout_marginLeft="40dp"
+                />
+        </LinearLayout>
+
 
     </LinearLayout>
 

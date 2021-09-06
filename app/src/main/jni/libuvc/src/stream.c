@@ -1380,6 +1380,7 @@ uvc_error_t uvc_stream_start(uvc_stream_handle_t *strmh,
 uvc_error_t uvc_stream_start_bandwidth(uvc_stream_handle_t *strmh,
 		uvc_frame_callback_t *cb, void *user_ptr, float bandwidth_factor, uint8_t flags) {
 	/* USB interface we'll be using */
+
 	const struct libusb_interface *interface;
 	int interface_id;
 	char isochronous;
@@ -1453,15 +1454,16 @@ uvc_error_t uvc_stream_start_bandwidth(uvc_stream_handle_t *strmh,
 
 		struct libusb_transfer *transfer;
 		int transfer_id;
-		
+
 		if ((bandwidth_factor > 0) && (bandwidth_factor < 1.0f)) {
 			config_bytes_per_packet = (size_t)(strmh->cur_ctrl.dwMaxPayloadTransferSize * bandwidth_factor);
 			if (!config_bytes_per_packet) {
 				config_bytes_per_packet = strmh->cur_ctrl.dwMaxPayloadTransferSize;
 			}
 		} else {
-			config_bytes_per_packet = strmh->cur_ctrl.dwMaxPayloadTransferSize;
+			config_bytes_per_packet = strmh->cur_ctrl.dwMaxPayloadTransferSize ;
 		}
+
 //#if !defined(__LP64__)
 //		LOGI("config_bytes_per_packet=%d", config_bytes_per_packet);
 //#else

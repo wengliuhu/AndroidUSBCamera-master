@@ -26,6 +26,7 @@ package com.serenegiant.usb.widget;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -34,8 +35,10 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
 
+import com.dybs.usbcamera.application.MyApplication;
+import com.dybs.usbcamera.utils.MyGlDrawer;
+import com.dybs.usbcamera.utils.ShaderUtils;
 import com.serenegiant.glutils.EGLBase;
-import com.serenegiant.glutils.GLDrawer2D;
 import com.serenegiant.glutils.es1.GLHelper;
 import com.serenegiant.usb.encoder.IVideoEncoder;
 import com.serenegiant.usb.encoder.MediaEncoder;
@@ -60,6 +63,7 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
     private Bitmap mTempBitmap;
     private boolean mReqesutCaptureStillImage;
 	private Callback mCallback;
+	private volatile Context mContext;
 	// Camera分辨率宽度
 
 
@@ -76,12 +80,13 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 
 	public UVCCameraTextureView(final Context context, final AttributeSet attrs, final int defStyle) {
 		super(context, attrs, defStyle);
+		mContext = context;
 		setSurfaceTextureListener(this);
 	}
 
 	@Override
 	public void onResume() {
-		if (DEBUG) Log.v(TAG, "onResume:");
+		Log.v(TAG, "-----onResume:-------");
 		if (mHasSurface) {
 			mRenderHandler = RenderHandler.createHandler(mFpsCounter, super.getSurfaceTexture(), getWidth(), getHeight());
 		}
@@ -102,7 +107,8 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 
 	@Override
 	public void onSurfaceTextureAvailable(final SurfaceTexture surface, final int width, final int height) {
-		if (DEBUG) Log.i(TAG, "onSurfaceTextureAvailable:" + surface);
+		if (DEBUG) Log.i(TAG, "onSurfaceTextureAvailable:" + surface + "////context:" + mContext);
+
 		if (mRenderHandler == null) {
 			mRenderHandler = RenderHandler.createHandler(mFpsCounter, surface, width, height);
 		} else {
@@ -219,6 +225,7 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 	/** update frame rate of image processing */
 	public void updateFps() {
 		mFpsCounter.update();
+
 	}
 
 	/**
@@ -238,20 +245,31 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 	}
 
 	/**
+	 * 灰度显示
+	 * @param gray
+	 */
+	public void changeGray(boolean gray){
+		String fsStr = ShaderUtils.loadFromAssetsFile(gray ? "filter/gray_fragment.sh" : "filter/default_fragment.sh", MyApplication.mInstance.getResources());
+		String vsStr = ShaderUtils.loadFromAssetsFile("filter/gray_vertex.sh", MyApplication.mInstance.getResources());
+		mRenderHandler.updateShader(vsStr, fsStr);
+//		mRenderHandler.mThread.mFragmentPath = gray ? "filter/gray_fragment.sh" : "filter/default_fragment.sh";
+	}
+
+	/**
 	 * render camera frames on this view on a private thread
 	 * @author saki
 	 *
 	 */
 	private static final class RenderHandler extends Handler
 		implements SurfaceTexture.OnFrameAvailableListener  {
-
 		private static final int MSG_REQUEST_RENDER = 1;
 		private static final int MSG_SET_ENCODER = 2;
 		private static final int MSG_CREATE_SURFACE = 3;
 		private static final int MSG_RESIZE = 4;
 		private static final int MSG_TERMINATE = 9;
+		private static final int MSG_UPDATE_SHADER = 10;
 
-		private RenderThread mThread;
+		public RenderThread mThread;
 		private boolean mIsActive = true;
 		private final FpsCounter mFpsCounter;
 
@@ -303,6 +321,20 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 			}
 		}
 
+		public void updateShader(String vs, String fs) {
+			if (DEBUG) Log.v(TAG, "updateShader:");
+			if (mIsActive) {
+				synchronized (mThread.mSync) {
+					Message message = obtainMessage(MSG_UPDATE_SHADER);
+					Bundle bundle = new Bundle();
+					bundle.putString("vs", vs);
+					bundle.putString("fs", fs);
+					message.setData(bundle);
+					sendMessage(message);
+				}
+			}
+		}
+
 		public final void release() {
 			if (DEBUG) Log.v(TAG, "release:");
 			if (mIsActive) {
@@ -327,6 +359,7 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 			switch (msg.what) {
 			case MSG_REQUEST_RENDER:
 				mThread.onDrawFrame();
+
 				break;
 			case MSG_SET_ENCODER:
 				mThread.setEncoder((MediaEncoder)msg.obj);
@@ -341,6 +374,14 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 				Looper.myLooper().quit();
 				mThread = null;
 				break;
+
+			case MSG_UPDATE_SHADER:
+			{
+				String vsStr = msg.getData().getString("vs");
+				String fsStr = msg.getData().getString("fs");
+				mThread.updateShader(vsStr, fsStr);
+				break;
+			}
 			default:
 				super.handleMessage(msg);
 			}
@@ -353,7 +394,7 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 	    	private EGLBase mEgl;
 	    	/** IEglSurface instance related to this TextureView */
 	    	private EGLBase.IEglSurface mEglSurface;
-	    	private GLDrawer2D mDrawer;
+	    	public MyGlDrawer mDrawer;
 	    	private int mTexId = -1;
 	    	/** SurfaceTexture instance to receive video images */
 	    	private SurfaceTexture mPreviewSurface;
@@ -361,6 +402,7 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 			private MediaEncoder mEncoder;
 			private int mViewWidth, mViewHeight;
 			private final FpsCounter mFpsCounter;
+			public String mFragmentPath = "";
 
 			/**
 			 * constructor
@@ -520,6 +562,10 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 */
 			}
 
+			public void updateShader(String vsStr, String fsStr){
+				mDrawer.updateShader(vsStr, fsStr);
+			}
+
 /*			// sample code to read pixels into IntBuffer and save as a Bitmap (part1)
 			private static Bitmap createBitmap(final int[] pixels, final int offset, final int width, final int height) {
 				final Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -570,7 +616,7 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 	    		mEglSurface = mEgl.createFromSurface(mSurface);
 	    		mEglSurface.makeCurrent();
 	    		// create drawing object
-	    		mDrawer = new GLDrawer2D(true);
+	    		mDrawer = new MyGlDrawer(true, mFragmentPath);
 			}
 
 	    	private final void release() {

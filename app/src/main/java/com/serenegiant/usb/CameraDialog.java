@@ -42,7 +42,7 @@ import android.widget.Spinner;
 
 //import com.serenegiant.uvccamera.R;
 
-import com.jiangdg.usbcamera.R;
+import com.dybs.usbcamera.R;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -35,11 +35,14 @@ import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class UVCCamera {
+	private Logger logger = LoggerFactory.getLogger(getClass());
 	private static final boolean DEBUG = false;	// TODO set false when releasing
 	private static final String TAG = UVCCamera.class.getSimpleName();
 	private static final String DEFAULT_USBFS = "/dev/bus/usb";
@@ -178,6 +181,11 @@ public class UVCCamera {
      */
     public UVCCamera() {
     	mNativePtr = nativeCreate();
+//    	// 获取本地参数
+//    	ConfigBean configBean = ConfigBean.getInstance();
+//		mCurrentFrameFormat = configBean.getFormat();
+//		mCurrentHeight = configBean.getHeight();
+//		mCurrentWidth = configBean.getWidth();
     	mSupportedSize = null;
 	}
 
@@ -207,6 +215,7 @@ public class UVCCamera {
 			}
 			sb.append("core message ->"+e.getLocalizedMessage());
 			result = -1;
+			logger.error("nativeConnect result{}", e);
 		}
 
 		if (result != 0) {
@@ -349,6 +358,11 @@ public class UVCCamera {
 
 	public List<Size> getSupportedSizeList() {
 		final int type = (mCurrentFrameFormat > 0) ? 6 : 4;
+		return getSupportedSize(type, mSupportedSize);
+	}
+
+	public List<Size> getSupportedSizeList(int format) {
+		final int type = (format > 0) ? 6 : 4;
 		return getSupportedSize(type, mSupportedSize);
 	}
 

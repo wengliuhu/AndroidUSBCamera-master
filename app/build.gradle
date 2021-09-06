@@ -3,17 +3,61 @@ import org.apache.tools.ant.taskdefs.condition.Os
 apply plugin: 'com.android.application'
 
 android {
+    //加载资源
+    Properties properties = new Properties()
+    InputStream inputStream = project.rootProject.file('local.properties').newDataInputStream()
+    properties.load(inputStream)
+    //读取文件
+    def keyFileDir = properties.getProperty('key.file')
+    //读取字段
+    def key_file = file(keyFileDir)
+    def key_keyAlias = properties.getProperty('keyAlias')
+    def key_keyPassword = properties.getProperty('keyPassword')
+    def key_storePassword = properties.getProperty('storePassword')
+
+    signingConfigs {
+        release {
+            v1SigningEnabled true
+            v2SigningEnabled true
+            keyAlias key_keyAlias
+            keyPassword key_keyPassword
+            storePassword key_storePassword
+            storeFile key_file
+        }
+        debug {
+            v1SigningEnabled true
+            v2SigningEnabled true
+            keyAlias key_keyAlias
+            keyPassword key_keyPassword
+            storePassword key_storePassword
+            storeFile key_file
+        }
+    }
+
     compileSdkVersion rootProject.ext.versionCompiler
     defaultConfig {
-        applicationId "com.jiangdg.usbcamera"
+        applicationId "com.dybs.usbcamera"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.versionTarget
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionNameString
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+//        ndk {
+////            stl "c++gnustl_static"
+////            abiFilters 'armeabi', 'armeabi-v7a'
+//            stl "stlport_shared"
+//        }
     }
     buildTypes {
+        debug {
+            debuggable true
+            signingConfig signingConfigs.debug //签名
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
         release {
+            debuggable true
+            signingConfig signingConfigs.release //签名
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -66,10 +110,15 @@ dependencies {
     implementation "androidx.appcompat:appcompat:${androidXVersion}"
 
     implementation 'com.jakewharton:butterknife:10.2.0'
+//    implementation project(path: ':opencv')
     annotationProcessor 'com.jakewharton:butterknife-compiler:10.2.0'
 
 //    implementation project(':libusbcamera')
     api "com.serenegiant:common:${commonLibVersion}"
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+
+    implementation 'com.github.tony19:logback-android:2.0.0'
+    implementation 'log4j:log4j:1.2.17'
+    implementation 'org.slf4j:slf4j-api:1.7.25'
 
 }

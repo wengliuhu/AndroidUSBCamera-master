@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <linux/time.h>
 #include <unistd.h>
+#include <queue>
 
 #if 1	// set 1 if you don't need debug log
 	#ifndef LOG_NDEBUG
@@ -72,6 +73,9 @@ UVCPreview::UVCPreview(uvc_device_handle_t *devh)
 	ENTER();
 	pthread_cond_init(&preview_sync, NULL);
 	pthread_mutex_init(&preview_mutex, NULL);
+
+    pthread_cond_init(&decode_sync, NULL);
+    pthread_mutex_init(&decode_mutex, NULL);
 //
 	pthread_cond_init(&capture_sync, NULL);
 	pthread_mutex_init(&capture_mutex, NULL);
@@ -97,6 +101,8 @@ UVCPreview::~UVCPreview() {
 	pthread_mutex_destroy(&capture_mutex);
 	pthread_cond_destroy(&capture_sync);
 	pthread_mutex_destroy(&pool_mutex);
+    pthread_cond_destroy(&decode_sync);
+    pthread_mutex_destroy(&decode_mutex);
 	EXIT();
 }
 
@@ -178,11 +184,16 @@ int UVCPreview::setPreviewSize(int width, int height, int min_fps, int max_fps, 
 		requestMaxFps = max_fps;
 		requestMode = mode;
 		requestBandwidth = bandwidth;
+//		LOGE("bandwidth_factor setPreviewSize：%d", requestBandwidth);
 
 		uvc_stream_ctrl_t ctrl;
 		result = uvc_get_stream_ctrl_format_size_fps(mDeviceHandle, &ctrl,
 			!requestMode ? UVC_FRAME_FORMAT_YUYV : UVC_FRAME_FORMAT_MJPEG,
 			requestWidth, requestHeight, requestMinFps, requestMaxFps);
+/*		// todo
+		result = uvc_get_stream_ctrl_format_size_fps(mDeviceHandle, &ctrl,
+													 !requestMode ? UVC_FRAME_FORMAT_YUYV : UVC_FRAME_FORMAT_RGBX,
+													 requestWidth, requestHeight, requestMinFps, requestMaxFps);*/
 	}
 	
 	RETURN(result, int);
@@ -346,6 +357,12 @@ int UVCPreview::startPreview() {
 				pthread_cond_signal(&preview_sync);
 			}
 			pthread_mutex_unlock(&preview_mutex);
+
+            pthread_mutex_lock(&decode_mutex);
+            {
+                pthread_cond_signal(&decode_sync);
+            }
+            pthread_mutex_unlock(&decode_mutex);
 		}
 	}
 	RETURN(result, int);
@@ -357,13 +374,10 @@ int UVCPreview::stopPreview() {
 	if (LIKELY(b)) {
 		mIsRunning = false;
 		pthread_cond_signal(&preview_sync);
-        // jiangdg:fix stopview crash
-        // because of capture_thread may null when called do_preview()
-		if (mHasCapturing) {
-            pthread_cond_signal(&capture_sync);
-            if (pthread_join(capture_thread, NULL) != EXIT_SUCCESS) {
-                LOGW("UVCPreview::terminate capture thread: pthread_join failed");
-            }
+        pthread_cond_signal(&capture_sync);
+        pthread_cond_signal(&decode_sync);
+		if (pthread_join(capture_thread, NULL) != EXIT_SUCCESS) {
+			LOGW("UVCPreview::terminate capture thread: pthread_join failed");
 		}
 		if (pthread_join(preview_thread, NULL) != EXIT_SUCCESS) {
 			LOGW("UVCPreview::terminate preview thread: pthread_join failed");
@@ -427,7 +441,8 @@ void UVCPreview::addPreviewFrame(uvc_frame_t *frame) {
 	if (isRunning() && (previewFrames.size() < MAX_FRAME)) {
 		previewFrames.put(frame);
 		frame = NULL;
-		pthread_cond_signal(&preview_sync);
+        pthread_cond_signal(&preview_sync);
+        pthread_cond_signal(&decode_sync);
 	}
 	pthread_mutex_unlock(&preview_mutex);
 	if (frame) {
@@ -440,7 +455,7 @@ uvc_frame_t *UVCPreview::waitPreviewFrame() {
 	pthread_mutex_lock(&preview_mutex);
 	{
 		if (!previewFrames.size()) {
-			pthread_cond_wait(&preview_sync, &preview_mutex);
+            pthread_cond_wait(&preview_sync, &preview_mutex);
 		}
 		if (LIKELY(isRunning() && previewFrames.size() > 0)) {
 			frame = previewFrames.remove(0);
@@ -481,8 +496,8 @@ int UVCPreview::prepare_preview(uvc_stream_ctrl_t *ctrl) {
 
 	ENTER();
 	result = uvc_get_stream_ctrl_format_size_fps(mDeviceHandle, ctrl,
-		!requestMode ? UVC_FRAME_FORMAT_YUYV : UVC_FRAME_FORMAT_MJPEG,
-		requestWidth, requestHeight, requestMinFps, requestMaxFps
+												 !requestMode ? UVC_FRAME_FORMAT_YUYV : UVC_FRAME_FORMAT_MJPEG,
+												 requestWidth, requestHeight, requestMinFps, requestMaxFps
 	);
 	if (LIKELY(!result)) {
 #if LOCAL_DEBUG
@@ -512,41 +527,113 @@ int UVCPreview::prepare_preview(uvc_stream_ctrl_t *ctrl) {
 	}
 	RETURN(result, int);
 }
+/**
+ * 计算当前时间戳
+ * @return
+ */
+long getCurrentTime()
+{
+	struct timeval tv;
+	gettimeofday(&tv,NULL);
+	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+// todo 消息队列，多线程处理解码
+
+void *UVCPreview::decode_thread_func(void *arg){
+    UVCPreview *preview = reinterpret_cast<UVCPreview *>(arg);
+    if (LIKELY(preview)) {
+        preview->decode_mjpeg();
+    }
+    pthread_exit(NULL);
+}
+
+std::queue < uvc_frame_t* > msgq;
+void *UVCPreview::decode_mjpeg(){
+    uvc_frame_t *frame = NULL;
+    uvc_frame_t *frame_mjpeg = NULL;
+    uvc_error_t result;
+    for ( ; LIKELY(isRunning()) ; ) {
+        frame_mjpeg = waitPreviewFrame();
+        if (LIKELY(frame_mjpeg)) {
+            frame = get_frame(frame_mjpeg->width * frame_mjpeg->height);
+            result = uvc_mjpeg2yuyv(frame_mjpeg, frame);   // MJPEG => yuyv
+            recycle_frame(frame_mjpeg);
+            if (LIKELY(!result)) {
+
+                pthread_mutex_lock( &decode_mutex);
+                int qsize = msgq.size();
+//                LOGE("-----decode_mjpeg---qsize: %d-", qsize);
+                if (qsize < 5){
+                    msgq.push(frame);
+                } else{
+                    recycle_frame(frame);
+                }
+                pthread_mutex_unlock( &decode_mutex);
+//                addCaptureFrame(frame);
+            } else {
+                recycle_frame(frame);
+            }
+        }
+    }
+}
 
 void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 	ENTER();
 
 	uvc_frame_t *frame = NULL;
-	uvc_frame_t *frame_mjpeg = NULL;
+//	uvc_frame_t *frame_mjpeg = NULL;
 	uvc_error_t result = uvc_start_streaming_bandwidth(
 		mDeviceHandle, ctrl, uvc_preview_frame_callback, (void *)this, requestBandwidth, 0);
-    // jiangdg:fix stopview crash
-    // use mHasCapturing flag confirm capture_thread was be created
-    mHasCapturing = false;
+
 	if (LIKELY(!result)) {
 		clearPreviewFrame();
-		if (pthread_create(&capture_thread, NULL, capture_thread_func, (void *)this) == 0) {
-		    mHasCapturing = true;
-		}
+		pthread_create(&capture_thread, NULL, capture_thread_func, (void *)this);
 
 #if LOCAL_DEBUG
 		LOGI("Streaming...");
 #endif
 		if (frameMode) {
-			// MJPEG mode
+            pthread_create(&decode_thread, NULL, decode_thread_func, (void *)this);
+            // MJPEG mode
 			for ( ; LIKELY(isRunning()) ; ) {
+
+/*//				long time_start = getCurrentTime();
 				frame_mjpeg = waitPreviewFrame();
 				if (LIKELY(frame_mjpeg)) {
 					frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 2);
+//					frame = get_frame(frame_mjpeg->width * frame_mjpeg->height);
+//					LOGE("------------编码---get_frame：%d", (getCurrentTime() - time_start));
+//					time_start = getCurrentTime();
+					// todo
 					result = uvc_mjpeg2yuyv(frame_mjpeg, frame);   // MJPEG => yuyv
+//					LOGE("------------编码---uvc_mjpeg2yuyv：%d", (getCurrentTime() - time_start));
 					recycle_frame(frame_mjpeg);
 					if (LIKELY(!result)) {
+//						time_start = getCurrentTime();
 						frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
+//						LOGE("------------编码---draw_preview_one：%d",
+//							 (getCurrentTime() - time_start));
+//						time_start = getCurrentTime();
 						addCaptureFrame(frame);
+//						LOGE("------------编码---addCaptureFrame：%d",
+//							 (getCurrentTime() - time_start));
 					} else {
 						recycle_frame(frame);
-					}
-				}
+					}*/
+                if (msgq.empty())
+                {
+//                    LOGE("-----do_preview---waite--");
+                    usleep(10000); // sleep 0.01 sec before trying again
+                    continue;
+                }
+                pthread_mutex_lock( &decode_mutex);
+                frame = msgq.front();
+                msgq.pop();
+                pthread_mutex_unlock( &decode_mutex);
+//                long time_start = getCurrentTime();
+//                LOGE("------------do_previe---addCaptureFrame");
+                frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
+                addCaptureFrame(frame);
 			}
 		} else {
 			// yuvyv mode

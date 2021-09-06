@@ -19,6 +19,8 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
+import androidx.annotation.NonNull;
+
 import com.serenegiant.usb.IFrameCallback;
 import com.serenegiant.usb.Size;
 import com.serenegiant.usb.USBMonitor;
@@ -256,6 +258,10 @@ public abstract class AbstractUVCCameraHandler extends Handler {
         return mWeakThread.get().getSupportedSizes();
     }
 
+    public List<Size> getSupportedPreviewSizes(int format) {
+        return mWeakThread.get().getSupportedSizes(format);
+    }
+
 //	// 启动音频线程
 //	public void startAudioThread(){
 //		sendEmptyMessage(MSG_AUDIO_START);
@@ -403,11 +409,24 @@ public abstract class AbstractUVCCameraHandler extends Handler {
         // 最大帧率
         public  int maxFrame = 31;
         // 最小帧率
-        public  int minFrame = 1;
+        public  int minFrame = 30;
+        // 默认帧率
+        public  int defultFrame = 30;
         // 帧率间隔
         public  int frameInterval = 333333;
         // 视频格式
         public  int format = UVCCamera.FRAME_FORMAT_MJPEG;
+
+        @Override
+        public String toString() {
+            return "UVCParam{" +
+                    "maxFrame=" + maxFrame +
+                    ", minFrame=" + minFrame +
+                    ", defultFrame=" + defultFrame +
+                    ", frameInterval=" + frameInterval +
+                    ", format=" + format +
+                    '}';
+        }
     }
 
     public static final class CameraThread extends Thread {
@@ -573,18 +592,25 @@ public abstract class AbstractUVCCameraHandler extends Handler {
             if (DEBUG) Log.v(TAG_THREAD, "handleStartPreview:");
             if ((mUVCCamera == null) || mIsPreviewing) return;
             try {
-                mUVCCamera.setPreviewSize(mWidth, mHeight, 1, 31, mPreviewMode, mBandwidthFactor);
+                if (mParam != null){
+                    Log.d("kim", "handleStartPreview:Param:" + mParam);
+                    mUVCCamera.setPreviewSize(mWidth, mHeight, 1, 61, mParam.format, mBandwidthFactor);
+                }else {
+                    mUVCCamera.setPreviewSize(mWidth, mHeight, 1, 61, mPreviewMode, mBandwidthFactor);
+                }
                 // 获取USB Camera预览数据，使用NV21颜色会失真
                 // 无论使用YUV还是MPEG，setFrameCallback的设置效果一致
 //				mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_NV21);
-                mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_YUV420SP);
+
+//                mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_YUV420SP);
             } catch (final IllegalArgumentException e) {
                 try {
                     // fallback to YUV mode
                     if (mParam != null){
-                        mUVCCamera.setPreviewSize(mWidth, mHeight, mParam.minFrame, mParam.maxFrame, mParam.format, mBandwidthFactor);
+                        Log.d("kim", "handleStartPreview:Param:" + mParam);
+                        mUVCCamera.setPreviewSize(mWidth, mHeight, mParam.defultFrame, mParam.defultFrame, mParam.format, mBandwidthFactor);
                     }else {
-                        mUVCCamera.setPreviewSize(mWidth, mHeight, 1, 31, UVCCamera.DEFAULT_PREVIEW_MODE, mBandwidthFactor);
+                        mUVCCamera.setPreviewSize(mWidth, mHeight, 1, 61, UVCCamera.DEFAULT_PREVIEW_MODE, mBandwidthFactor);
                     }
                 } catch (final IllegalArgumentException e1) {
                     callOnError(e1);
@@ -950,9 +976,16 @@ public abstract class AbstractUVCCameraHandler extends Handler {
 
         // 获取支持的分辨率
         public List<Size> getSupportedSizes() {
-            if ((mUVCCamera == null) || !mIsPreviewing)
+            if ((mUVCCamera == null))
                 return null;
             return mUVCCamera.getSupportedSizeList();
+        }
+
+        // 获取支持的分辨率
+        public List<Size> getSupportedSizes(int format) {
+            if ((mUVCCamera == null))
+                return null;
+            return mUVCCamera.getSupportedSizeList(format);
         }
 
         private final MediaEncoder.MediaEncoderListener mMediaEncoderListener = new MediaEncoder.MediaEncoderListener() {

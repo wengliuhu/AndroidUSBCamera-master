@@ -372,6 +372,7 @@ char *UVCDiags::getSupportedSize(const uvc_device_handle_t *deviceHandle) {
 							writer.StartArray();
 							DL_FOREACH(fmt_desc->frame_descs, frame_desc)
 							{
+//								snprintf(buf, sizeof(buf), "%dx%d", frame_desc->wWidth, frame_desc->wHeight);
 								// 宽、高、默认间隔、最大间隔、最小间隔
 								snprintf(buf, sizeof(buf), "%dx%dx%dx%dx%d", frame_desc->wWidth, frame_desc->wHeight, *(frame_desc->intervals), frame_desc->dwMaxFrameInterval, frame_desc->dwMaxFrameInterval);
 								buf[sizeof(buf)-1] = '\0';

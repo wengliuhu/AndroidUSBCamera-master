@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ScanView">
+        <attr name="lineWidth" format="dimension"></attr>
+        <attr name="lineColor" format="color"></attr>
+        <attr name="countDownStart" format="integer"></attr>
+        <attr name="showCountDown" format="boolean"></attr>
+        <attr name="countDownTextSize" format="integer"></attr>
+        <attr name="scaleLineLength" format="float"></attr>
+    </declare-styleable>
+
+    <declare-styleable name="AutoScanView">
+        <attr name="auto_linewidth" format="dimension"></attr>
+        <attr name="auto_lineColor" format="color"></attr>
+        <attr name="auto_scaleLineLength" format="float"></attr>
+
+    </declare-styleable>
+
+    <declare-styleable name="MySearchView">
+        <!-- search_bar背景-->
+        <attr format="reference|color" name="search_view_bar_bg"/>
+        <!-- search_bar 整体padding-->
+        <attr format="dimension" name="search_view_bar_padding"/>
+
+        <!-- search_bar edittext的hint-->
+        <attr format="string" name="search_view_hint"/>
+        <!-- edittext的字体size-->
+        <attr format="dimension" name="search_view_edittext_font_size"/>
+
+        <!-- 搜索icon 宽度-->
+        <attr format="dimension" name="search_view_icon_text_size"/>
+
+        <!-- 搜索框输入文本字体颜色-->
+        <attr format="color" name="search_view_edittext_font_color"/>
+        <!-- 清除输入的icon的宽度-->
+        <attr format="dimension" name="search_view_clear_icon_text_size"/>
+
+        <attr format="string" name="search_view_icon_text"/>
+        <attr format="string" name="search_view_clear_text"/>
+    </declare-styleable>
+
+<declare-styleable name="GifView">
+    <attr format="reference" name="gif"/>
+    <attr format="boolean" name="paused"/>
+</declare-styleable>
+
+</resources>
