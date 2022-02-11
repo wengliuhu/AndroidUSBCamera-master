@@ -31,3 +31,4 @@ APP_ABI := armeabi armeabi-v7a x86 mips
 #APP_OPTIM := debug
 APP_OPTIM := release
 APP_STL                 := stlport_static
+APP_CPPFLAGS += -fexceptions

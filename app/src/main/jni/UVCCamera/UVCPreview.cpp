@@ -554,26 +554,33 @@ void *UVCPreview::decode_mjpeg(){
     uvc_error_t result;
     for ( ; LIKELY(isRunning()) ; ) {
         frame_mjpeg = waitPreviewFrame();
-        if (LIKELY(frame_mjpeg)) {
-            frame = get_frame(frame_mjpeg->width * frame_mjpeg->height);
-            result = uvc_mjpeg2yuyv(frame_mjpeg, frame);   // MJPEG => yuyv
-            recycle_frame(frame_mjpeg);
-            if (LIKELY(!result)) {
+        try{
+			if (LIKELY(frame_mjpeg)) {
+				frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 4);
+//                result = uvc_mjpeg2yuyv(frame_mjpeg, frame);   // MJPEG => yuyv
+                result = uvc_mjpeg2rgbx(frame_mjpeg, frame);   // MJPEG => rgbx
+				recycle_frame(frame_mjpeg);
+				if (LIKELY(!result)) {
 
-                pthread_mutex_lock( &decode_mutex);
-                int qsize = msgq.size();
-//                LOGE("-----decode_mjpeg---qsize: %d-", qsize);
-                if (qsize < 5){
-                    msgq.push(frame);
-                } else{
-                    recycle_frame(frame);
-                }
-                pthread_mutex_unlock( &decode_mutex);
+					pthread_mutex_lock( &decode_mutex);
+					int qsize = msgq.size();
+					LOGE("-----decode_mjpeg---qsize: %d-", qsize);
+					if (qsize < 2){
+						msgq.push(frame);
+					} else{
+						recycle_frame(frame);
+						sleep(10);
+					}
+					pthread_mutex_unlock( &decode_mutex);
 //                addCaptureFrame(frame);
-            } else {
-                recycle_frame(frame);
-            }
-        }
+				} else {
+					recycle_frame(frame);
+				}
+			}
+
+		} catch (...) {
+            break;
+		}
     }
 }
 
@@ -581,7 +588,7 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 	ENTER();
 
 	uvc_frame_t *frame = NULL;
-//	uvc_frame_t *frame_mjpeg = NULL;
+	uvc_frame_t *frame_mjpeg = NULL;
 	uvc_error_t result = uvc_start_streaming_bandwidth(
 		mDeviceHandle, ctrl, uvc_preview_frame_callback, (void *)this, requestBandwidth, 0);
 
@@ -593,47 +600,46 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 		LOGI("Streaming...");
 #endif
 		if (frameMode) {
-            pthread_create(&decode_thread, NULL, decode_thread_func, (void *)this);
+//            pthread_create(&decode_thread, NULL, decode_thread_func, (void *)this);
             // MJPEG mode
 			for ( ; LIKELY(isRunning()) ; ) {
 
-/*//				long time_start = getCurrentTime();
+//				long time_start = getCurrentTime();
 				frame_mjpeg = waitPreviewFrame();
+//				frame = waitPreviewFrame();
 				if (LIKELY(frame_mjpeg)) {
+//					frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 2);
+//					result = uvc_mjpeg2yuyv(frame_mjpeg, frame);   // MJPEG => yuyv
 					frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 2);
-//					frame = get_frame(frame_mjpeg->width * frame_mjpeg->height);
-//					LOGE("------------编码---get_frame：%d", (getCurrentTime() - time_start));
-//					time_start = getCurrentTime();
-					// todo
-					result = uvc_mjpeg2yuyv(frame_mjpeg, frame);   // MJPEG => yuyv
-//					LOGE("------------编码---uvc_mjpeg2yuyv：%d", (getCurrentTime() - time_start));
+					result = uvc_mjpeg2rgbx(frame_mjpeg, frame);   // MJPEG => rgbx
 					recycle_frame(frame_mjpeg);
+//					LOGE("-----do_preview---uvc_mjpeg2rgbx----:%d", getCurrentTime() - time_start);
 					if (LIKELY(!result)) {
-//						time_start = getCurrentTime();
 						frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
-//						LOGE("------------编码---draw_preview_one：%d",
-//							 (getCurrentTime() - time_start));
-//						time_start = getCurrentTime();
-						addCaptureFrame(frame);
-//						LOGE("------------编码---addCaptureFrame：%d",
-//							 (getCurrentTime() - time_start));
+//						LOGE("-----do_preview---draw_preview_one----:%d", getCurrentTime() - time_start);
+//						addCaptureFrame(frame);
+						recycle_frame(frame);
 					} else {
 						recycle_frame(frame);
-					}*/
-                if (msgq.empty())
+					}
+				}
+//				recycle_frame(frame);
+
+/*                if (msgq.empty())
                 {
-//                    LOGE("-----do_preview---waite--");
-                    usleep(10000); // sleep 0.01 sec before trying again
+                    LOGE("-----do_preview---waite--:%d", msgq.size());
+                    sleep(10); // sleep 0.01 sec before trying again
                     continue;
                 }
                 pthread_mutex_lock( &decode_mutex);
                 frame = msgq.front();
                 msgq.pop();
                 pthread_mutex_unlock( &decode_mutex);
-//                long time_start = getCurrentTime();
-//                LOGE("------------do_previe---addCaptureFrame");
+//                frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
                 frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
-                addCaptureFrame(frame);
+//                addCaptureFrame(frame);
+				recycle_frame(frame);*/
+
 			}
 		} else {
 			// yuvyv mode
@@ -708,6 +714,7 @@ int copyToSurface(uvc_frame_t *frame, ANativeWindow **window) {
 			const int h = frame->height < buffer.height ? frame->height : buffer.height;
 			// transfer from frame data to the Surface
 			copyFrame(src, dest, w, h, src_step, dest_step);
+
 			ANativeWindow_unlockAndPost(*window);
 		} else {
 			result = -1;
@@ -721,6 +728,7 @@ int copyToSurface(uvc_frame_t *frame, ANativeWindow **window) {
 // changed to return original frame instead of returning converted frame even if convert_func is not null.
 uvc_frame_t *UVCPreview::draw_preview_one(uvc_frame_t *frame, ANativeWindow **window, convFunc_t convert_func, int pixcelBytes) {
 	// ENTER();
+	long time_start = getCurrentTime();
 
 	int b = 0;
 	pthread_mutex_lock(&preview_mutex);
@@ -734,9 +742,11 @@ uvc_frame_t *UVCPreview::draw_preview_one(uvc_frame_t *frame, ANativeWindow **wi
 			converted = get_frame(frame->width * frame->height * pixcelBytes);
 			if LIKELY(converted) {
 				b = convert_func(frame, converted);
+				LOGE("--------draw_preview_one--11--:%d", getCurrentTime() - time_start);
 				if (!b) {
 					pthread_mutex_lock(&preview_mutex);
 					copyToSurface(converted, window);
+					LOGE("--------draw_preview_one--22--:%d", getCurrentTime() - time_start);
 					pthread_mutex_unlock(&preview_mutex);
 				} else {
 					LOGE("failed converting");

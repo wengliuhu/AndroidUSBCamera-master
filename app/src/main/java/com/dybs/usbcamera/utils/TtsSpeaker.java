@@ -82,6 +82,34 @@ public class TtsSpeaker{
                                             super.onError(utteranceId, errorCode);
                                             logger.error("-------onError---- utteranceId:{},errorCode:{}", utteranceId, errorCode);
                                         }
+
+                                        @Override
+                                        public void onStop(String utteranceId, boolean interrupted) {
+                                            super.onStop(utteranceId, interrupted);
+                                            logger.debug("-------onStop----" + utteranceId);
+
+                                        }
+
+                                        @Override
+                                        public void onBeginSynthesis(String utteranceId, int sampleRateInHz, int audioFormat, int channelCount) {
+                                            super.onBeginSynthesis(utteranceId, sampleRateInHz, audioFormat, channelCount);
+                                            logger.debug("-------onBeginSynthesis----" + utteranceId);
+
+                                        }
+
+                                        @Override
+                                        public void onAudioAvailable(String utteranceId, byte[] audio) {
+                                            super.onAudioAvailable(utteranceId, audio);
+                                            logger.debug("-------onAudioAvailable----" + utteranceId);
+
+                                        }
+
+                                        @Override
+                                        public void onRangeStart(String utteranceId, int start, int end, int frame) {
+                                            super.onRangeStart(utteranceId, start, end, frame);
+                                            logger.debug("-------onRangeStart----" + utteranceId);
+
+                                        }
                                     });
                                 }
                             }

@@ -230,6 +230,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
 //                Log.d(TAG, "onPreviewResult: "+nv21Yuv.length);
             }
         });
+        runOnUiThread(mFpsTask);
 
     }
 
@@ -327,9 +328,9 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
 //                    mMatrix.setScale(scale, scale, mCenterX, mCenterY);
 //                    mUVCCameraView.setTransform(mMatrix);
 //                    mUVCCameraView.postInvalidate();
-                    int showProcess = (progress == 5 ? 1 : progress - 5);
 //                    String showText = "x " + (progress == 5 ? 1 : progress - 5);
-                    TtsSpeaker.getInstance().addMessageFlush((showProcess > 0 ? "放大 " : "缩小") + Math.abs(showProcess) + "倍");
+                    int showProcess = (progress == 5 ? 1 : progress - 5);
+                    TtsSpeaker.getInstance().addMessageFlush("[p1500]" + (showProcess > 0 ? "放大 " : "缩小") + Math.abs(showProcess) + "倍");
 //                    mTvScale.setText(showText);
 //                    ConfigBean.getInstance().setScale(progress);
 //
@@ -403,7 +404,6 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         if (mCameraHelper != null) {
             mCameraHelper.registerUSB();
         }
-        runOnUiThread(mFpsTask);
     }
     private final Runnable mFpsTask = new Runnable() {
         @Override
@@ -412,6 +412,9 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
             if (mUVCCameraView != null) {
                 mUVCCameraView.updateFps();
                 srcFps = mUVCCameraView.getFps();
+                if (srcFps > ConfigBean.getInstance().getDefultFrame()){
+                    srcFps = ConfigBean.getInstance().getDefultFrame();
+                }
             } else {
                 srcFps = 0.0f;
             }
@@ -507,6 +510,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                     configBean.setFormat(param.format);
                     configBean.save();
                     mCameraHelper.updateResolution(widht, height, param);
+                    mUVCCameraView.resetFps();
 
                 }
 //                String[] tmp = resolution.split("x");
